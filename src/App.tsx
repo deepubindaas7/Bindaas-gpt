@@ -34,6 +34,7 @@ export default function App() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [apiKeyMissing, setApiKeyMissing] = useState(false);
+  const [isKeySelectionOpen, setIsKeySelectionOpen] = useState(false);
   
   // Voice State
   const [isListening, setIsListening] = useState(false);
@@ -86,10 +87,21 @@ export default function App() {
 
   useEffect(() => {
     scrollToBottom();
-    if (!process.env.GEMINI_API_KEY) {
-      setApiKeyMissing(true);
-    }
+    const checkApiKey = async () => {
+      // Check for both GEMINI_API_KEY and the potential API_KEY injected by the platform
+      const hasKey = !!process.env.GEMINI_API_KEY || !!(process.env as any).API_KEY || ((window as any).aistudio && await (window as any).aistudio.hasSelectedApiKey());
+      setApiKeyMissing(!hasKey);
+    };
+    checkApiKey();
   }, [messages]);
+
+  const handleOpenKeySelection = async () => {
+    if ((window as any).aistudio) {
+      await (window as any).aistudio.openSelectKey();
+      // Assume success and proceed, as per guidelines
+      setApiKeyMissing(false);
+    }
+  };
 
   useEffect(() => {
     // Update video state based on loading/listening
@@ -216,8 +228,11 @@ export default function App() {
     setIsLoading(true);
 
     try {
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) throw new Error("API Key missing.");
+      const apiKey = process.env.GEMINI_API_KEY || (process.env as any).API_KEY;
+      if (!apiKey) {
+        setApiKeyMissing(true);
+        throw new Error("API Key missing. Please select an API key from the header.");
+      }
 
       const ai = new GoogleGenAI({ apiKey });
       const model = "gemini-3-flash-preview";
@@ -306,9 +321,12 @@ export default function App() {
         </div>
         <div className="flex items-center gap-2">
           {apiKeyMissing && (
-            <div className="hidden md:flex items-center gap-1 text-red-400 text-[10px] bg-red-400/10 px-2 py-1 rounded border border-red-400/20">
-              <AlertCircle className="w-3 h-3" /> API Key Missing
-            </div>
+            <button
+              onClick={handleOpenKeySelection}
+              className="flex items-center gap-1 text-red-400 text-[10px] bg-red-400/10 px-2 py-1 rounded border border-red-400/20 hover:bg-red-400/20 transition-colors"
+            >
+              <AlertCircle className="w-3 h-3" /> Select API Key
+            </button>
           )}
           <button
             onClick={clearChat}
