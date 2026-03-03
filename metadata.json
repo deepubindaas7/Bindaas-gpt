@@ -1,0 +1,5 @@
+{
+  "name": "Deepu Bindaas AI",
+  "description": "Deepu Bindaas AI - Your cool, friendly Hindi-speaking assistant with voice and vision capabilities.",
+  "requestFramePermissions": ["camera", "microphone"]
+}
